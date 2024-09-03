@@ -2,10 +2,10 @@ import os
 
 from ament_index_python.packages import get_package_share_directory, get_package_prefix
 from launch import LaunchDescription
+from launch_ros.descriptions import ComposableNode
+from launch_ros.actions import ComposableNodeContainer, Node
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
-from launch_ros.actions import Node
-
 
 def generate_launch_description():
     params_file = os.path.join(
@@ -19,16 +19,22 @@ def generate_launch_description():
         DeclareLaunchArgument(name='camera_info_url',
                               default_value=camera_info_url),
         DeclareLaunchArgument(name='use_sensor_data_qos',
-                              default_value='false'),
+                              default_value='true'),
 
-        Node(
-            package='hik_camera',
-            executable='hik_camera_node',
-            output='screen',
-            emulate_tty=True,
-            parameters=[LaunchConfiguration('params_file'), {
-                'camera_info_url': LaunchConfiguration('camera_info_url'),
-                'use_sensor_data_qos': LaunchConfiguration('use_sensor_data_qos'),
-            }],
-        )
+        ComposableNodeContainer(
+            name='camera_container',
+            namespace='',
+            package='rclcpp_components',
+            executable='component_container',
+            composable_node_descriptions=[
+                ComposableNode(
+                    package='hik_camera',
+                    plugin='hik_camera::HikCameraNode',
+                    name='camera_node',
+                    parameters=[params_file],
+                    extra_arguments=[{'use_intra_process_comms': True}]
+                ),
+            ],
+            output='both',
+            emulate_tty=True,),
     ])
