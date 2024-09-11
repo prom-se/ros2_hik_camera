@@ -125,7 +125,9 @@ namespace hik_camera
             unsigned char *pData, MV_FRAME_OUT_INFO_EX *pFrameInfo, void *pUser)
         {
             HikCameraNode *node_ptr = (HikCameraNode *)pUser;
-            node_ptr->image_msg_.set__data(std::vector<uint8_t>(*pData));
+            std::vector<uint8_t> image(node_ptr->camera_info_msg_.width*node_ptr->camera_info_msg_.height*3);
+            memcpy(image.data(),pData,image.size());
+            node_ptr->image_msg_.set__data(image);
             node_ptr->image_msg_.header.stamp = node_ptr->now();
             node_ptr->camera_info_msg_.header = node_ptr->image_msg_.header;
             node_ptr->camera_pub_.publish(node_ptr->image_msg_, node_ptr->camera_info_msg_);
@@ -156,7 +158,12 @@ namespace hik_camera
                 MV_CC_SetEnumValue(camera_handle_, "TriggerMode", MV_TRIGGER_MODE_OFF);
                 MV_CC_SetEnumValue(camera_handle_, "AcquisitionMode", MV_ACQ_MODE_CONTINUOUS);
                 MV_CC_RegisterImageCallBackEx(camera_handle_, &HikCameraNode::hik_image_callback, this);
+                RCLCPP_INFO(this->get_logger(), "Camera register callback");
                 MV_CC_StartGrabbing(camera_handle_);
+            }else{
+                MVCC_FLOATVALUE fps;
+                MV_CC_GetFrameRate(camera_handle_,&fps);
+                RCLCPP_INFO(this->get_logger(),"FPS:%6.2f",fps.fCurValue);
             }
         }
 
